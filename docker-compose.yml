@@ -1,0 +1,68 @@
+version: "3.8"
+services:
+    app:
+        build:
+            args:
+                user: john
+                uid: 1000
+            context: ./
+            dockerfile: Dockerfile
+        image: point-api
+        container_name: api
+        restart: unless-stopped
+        depends_on:
+            - db
+        working_dir: /var/www/
+        volumes:
+            - ./:/var/www
+        networks:
+            - point-api
+    db:
+        image: postgres
+        container_name: api-pgsql
+        restart: unless-stopped
+        user: postgres
+        environment:
+            POSTGRES_USER: ${DB_USERNAME}
+            POSTGRES_PASSWORD: ${DB_PASSWORD}
+            POSTGRES_DB: ${DB_DATABASE}
+        ports:
+            - "5432:5432"
+        volumes:
+            - postgres:/var/lib/postgresql/data
+        networks:
+            - point-api
+    db-testing:
+        image: postgres
+        container_name: api-pgsql-testing
+        restart: unless-stopped
+        user: postgres
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: root
+            POSTGRES_DB: testing
+        ports:
+            - "5433:5432"
+        volumes:
+            - postgres-testing:/var/lib/postgresql/data
+        networks:
+            - point-api
+    nginx:
+        image: nginx
+        container_name: api-nginx
+        restart: unless-stopped
+        depends_on:
+            - app
+        ports:
+            - "${PORT}:80"
+        volumes:
+            - ./:/var/www
+            - ./nginx:/etc/nginx/conf.d
+        networks:
+            - point-api
+networks:
+    point-api:
+        driver: bridge
+volumes:
+    postgres:
+    postgres-testing:
